@@ -8,12 +8,16 @@ Mathlib, which should not be the case, then we can PR it.
 -/
 
 import Mathlib.Analysis.Asymptotics.Defs
+import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 open Asymptotics Filter
 
-variable {α E : Type*}
+variable {α E E' F' : Type*}
 variable [LinearOrder α] -- [Nonempty α]
 variable [NormedDivisionRing E]
+variable [SeminormedAddCommGroup E'] [SeminormedAddCommGroup F']
+variable {f' : α → E'} {g' : α → F'}
+variable {l : Filter α}
 
 -- Wonder why exact? didn't work...
 theorem mul_isBigO_mul {f g F G : α → E} (hf : f =O[atTop] F) (hg : g =O[atTop] G) :
@@ -49,3 +53,16 @@ theorem isBigO_pow {f F : α → E} {n : ℕ} (hf : f =O[atTop] F) :
   -- exact (isBigO_const_const_iff atTop).mpr fun a ↦ a
   -- · simp only [pow_succ]
   -- exact IsBigO.mul hn hf
+
+/-
+A variant of IsTheta.rpow that does not require the exponent to be nonnegative, and in which
+the conclusion is a Theta relation between norms.
+-/
+theorem IsTheta.rpow' (h : f' =Θ[l] g') (c : ℝ) :
+    (fun x ↦ ‖f' x‖ ^ c) =Θ[l] fun x ↦ ‖g' x‖ ^ c := by
+  wlog hc : c ≥ 0
+  · rw[← isTheta_inv]
+    have : (fun x ↦ ‖f' x‖ ^ (-c)) =Θ[l] fun x ↦ (‖g' x‖ ^ (-c)) := this h (-c) (by linarith)
+    convert this using 2 <;> exact (Real.rpow_neg (norm_nonneg _) _).symm
+  refine IsTheta.rpow hc ?_ ?_ (by rwa[isTheta_norm_left, isTheta_norm_right]) <;>
+    exact Filter.Eventually.of_forall fun x ↦ norm_nonneg _

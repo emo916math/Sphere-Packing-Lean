@@ -30,7 +30,7 @@ namespace RpowDecay
 
 def Periodicization (f : EuclideanSpace ℝ d → ℂ) : UnitAddTorus d → ℂ :=
   -- fun x ↦ Quotient.liftOn' x f
-  sorry
+  by admit
   /- In the proof of the one dimensional case for the Poisson summation formula. They first use
   `f : ℝ → ℂ` to get a periodic function defined by `∑' (n : ℤ), f (x + n)`. They then use
   `Function.Periodic.lift` to get a function defined on the circle.
@@ -47,17 +47,17 @@ lemma Summable_mFourier_coeff {b : ℝ} (hb : Fintype.card d < b)
     (h_sum : Summable fun n : d → ℤ => 𝓕 f fun i => n i) :
     Summable (mFourierCoeff (Periodicization f)) := by
   -- Use `tendstoUniformly_tsum_nat` but somehow generalise statement by replacing ℕ with countable
-  sorry
+  admit
 
 /- For each (n : d → ℤ) 𝓕 f (fun i => n i)) = mFourierCoeff (Periodicization f) n. -/
 lemma mFourierCoeff_Periodicization_eq_FourierTransform {b : ℝ} (hb : Fintype.card d < b)
     (hf : f =O[cocompact (EuclideanSpace ℝ d)] (‖·‖ ^ (-b))) (n : d → ℤ) :
-    𝓕 f (fun i => n i) = mFourierCoeff (Periodicization f) n := by sorry
+    𝓕 f (fun i => n i) = mFourierCoeff (Periodicization f) n := by admit
 
 /- Periodicization is continuous. -/
 lemma cont_Periodicization {b : ℝ} (hb : Fintype.card d < b)
     (hf : f =O[cocompact (EuclideanSpace ℝ d)] (‖·‖ ^ (-b))) (n : d → ℤ) :
-    Continuous (Periodicization f) := by sorry
+    Continuous (Periodicization f) := by admit
 /- We assume f decays very fast so that ∑' n : d → ℤ, f (x + n) is dominated by a convergent
   series. We can then deduce that ∑' n : d → ℤ, f (x + n) converges uniformly by the Weierstrass M-
   test. ∑' n : d → ℤ, f (x + n) is thus continuous as the uniform limit of continuous functions.
@@ -72,7 +72,7 @@ theorem tsum_mFourier_coeff_eq_tsum_fourierIntegralof_rpow_decay_of_summable {b 
     (x : EuclideanSpace ℝ d) :
     ∑' n : d → ℤ, f (fun i => (n i + x i : ℝ)) =
     ∑' n : d → ℤ, 𝓕 f (fun i => n i) • mFourier n (fun i => x i) := by
-  sorry
+  admit
 
 noncomputable def euclideanNorm : (d → ℝ) → ℝ :=
   fun v ↦ @Norm.norm (EuclideanSpace ℝ d) _ v
@@ -127,96 +127,32 @@ lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} : euclideanNorm v ≤ 
       rw[sqrt_mul (Nat.cast_nonneg _), sqrt_sq (norm_nonneg _)]
   sorry
 
-/-- d-dimensional analogue of the absolute convergence of p-series. -/
-lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
-    Summable (fun (v : d → ℤ) ↦ euclideanNorm (toReal ∘ v) ^ (-p)) ↔
+/-- d-dimensional analogue of the absolute convergence of p-series
+  (∞-norm version) -/
+lemma summable_norm_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
+    Summable (fun (v : d → ℤ) ↦ ‖toReal ∘ v‖ ^ (-p)) ↔
     p > Fintype.card d := by
+  sorry
+
+/-- d-dimensional analogue of the absolute convergence of p-series
+  (Euclidean norm version) -/
+lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
+    Summable (fun (v : d → ℤ) ↦ (euclideanNorm (toReal ∘ v)) ^ (-p)) ↔
+    p > Fintype.card d := by
+  rw[← summable_norm_rpow_iff]
   constructor
   · intro hd
-    suffices conv_l_inf : ¬Summable fun (v : d → ℤ) ↦
-        (Real.sqrt (Fintype.card d) * ‖fun i ↦ ↑(v i)‖) ^ (-p) by
-      contrapose! conv_l_inf
-      stop /- Numerous errors because calculation is backwards. Will be fixed
-      apply hd.of_nonneg_of_le
-      · intro v
-        positivity
-      · intro v
-        if hv : v = 0 then
-          calc
-            (euclideanNorm v) ^ (-p) = 0 := by
-              rw [euclideanNorm_def, rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
-              constructor
-              · rw[norm_eq_zero, hv]
-                simp
-                rfl /- Why is this line needed? -/
-              · linarith
-            _ = (Real.sqrt (Fintype.card d) * ‖fun i ↦ ↑(v i)‖) ^ (-p) := by
-              symm
-              rw [rpow_eq_zero_iff_of_nonneg (mul_nonneg (sqrt_nonneg _) (norm_nonneg _))]
-              constructor
-              · apply mul_eq_zero_of_right
-                rw[norm_eq_zero, hv]
-              · linarith
-          rfl
-        else
-          refine (rpow_le_rpow_iff_of_neg ?_ ?_ ?_).mpr ?_
-          · refine norm_pos_iff.mpr ?_
-            contrapose! hv
-            funext i
-            apply Int.cast_injective (α := ℝ)
-            rw[congr_fun hv i]
-            simp
-          · apply mul_pos (sqrt_pos_of_pos (Nat.cast_pos'.mpr hd))
-            refine norm_pos_iff.mpr ?_
-            contrapose! hv
-            funext i
-            rw[congr_fun hv i]
-          · linarith
-          calc
-            √↑(Fintype.card d) * ‖fun i ↦ v i‖ = √↑(Fintype.card d * (‖fun i ↦ v i‖)^2) := by
-              rw[sqrt_mul (Nat.cast_nonneg _), sqrt_sq (norm_nonneg _)]
-            _ ≤ euclideanNorm v := by
-              rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
-              apply sqrt_le_sqrt  -/
-      sorry
-    sorry
-  · intro hp
-    suffices conv_l_inf : Summable fun (v : d → ℤ) ↦
-        ‖v‖ ^ (-p) by
-      apply conv_l_inf.of_nonneg_of_le
-      · intro v
-        rw[euclideanNorm_def]
-        positivity
-      · intro v
-        if hv : v = 0 then
-          calc
-            (euclideanNorm (toReal ∘ v)) ^ (-p) = 0 := by
-              rw [euclideanNorm_def, rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
-              constructor
-              · rw[norm_eq_zero, hv]
-                funext
-                simp[toReal]
-              · linarith
-            _ = ‖v‖ ^ (-p) := by
-              symm
-              rw [rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
-              constructor
-              · rw[norm_eq_zero, hv]
-              · linarith
-          rfl
-        else
-          refine (rpow_le_rpow_iff_of_neg ?_ ?_ ?_).mpr ?_
-          · refine norm_pos_iff.mpr ?_
-            contrapose! hv
-            funext i
-            have := congrFun hv i
-            simp only [Function.comp_apply, toReal_def, PiLp.zero_apply, Int.cast_eq_zero,
-              Pi.zero_apply] at this ⊢
-            exact this
-          · exact norm_pos_iff.mpr hv
-          · linarith
-          exact supNorm_le_euclideanNorm
-    sorry
+    refine summable_of_isBigO hd ?_
+    if hp : p < 0 then
+      apply IsBigO.rpow
+      · linarith
+      · apply Filter.univ_mem'
+        simp
+      · apply isBigO_of_le
+        simp
+        exact (fun v ↦ supNorm_le_euclideanNorm)
+     else
+      sorry /- Resume here -/
 
 lemma summable_abs_int_rpow {p : ℝ} (hp : Fintype.card d < p) :
     Summable (fun (v : d → ℤ) ↦ euclideanNorm (toReal ∘ v) ^ (-p)) := by
@@ -266,15 +202,15 @@ variable (Λ : Submodule ℤ (EuclideanSpace ℝ d)) [DiscreteTopology Λ] [IsZL
 exsts a scaling factor related to the volume of the fundamental area of this ZLattice, but I
 didn't include it yet as I am not sure how to define it. -/
 def _root_.ZLattice.mFourier (n : Λ) : C(UnitAddTorus d, ℂ) where
-  toFun x := sorry
-  continuous_toFun := sorry
+  toFun x := by admit
+  continuous_toFun := by admit
 
 /-- **Poisson summation formula** for a general lattice. We need to use
 `integral_image_eq_integral_abs_det_fderiv_smul`. -/
 theorem _root_.ZLattice.tsum_mFourier_coeff_eq_tsum_fourierIntegral (f : 𝓢(EuclideanSpace ℝ d, ℂ))
   (x : EuclideanSpace ℝ d) :
   ∑' n : Λ, f (fun i => n.val i + x i) =
-  ∑' n : Λ, 𝓕 f (fun i => n.val i) * ZLattice.mFourier Λ n (fun i => x i) := by sorry
+  ∑' n : Λ, 𝓕 f (fun i => n.val i) * ZLattice.mFourier Λ n (fun i => x i) := by admit
 
 end SchwartzMap
 

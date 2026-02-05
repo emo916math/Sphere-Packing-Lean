@@ -85,6 +85,22 @@ lemma toReal_def {x : ℤ} : toReal x = x := rfl
 lemma toReal_injective : Function.Injective toReal :=
     Isometry.injective fun _ ↦ congrFun rfl
 
+lemma eq_zero_of_toReal_eq_zero {α : Type*} {v : α → ℤ} (hv : toReal ∘ v = 0) : v = 0 := by
+  ext i
+  have : (toReal ∘ v) i = (0 : α → ℝ) i := congrFun hv i
+  simp at this
+  exact Int.cast_injective this
+
+lemma eq_zero_iff_toReal_eq_zero {α : Type*} {v : α → ℤ} : v = 0 ↔ toReal ∘ v = 0 := by
+  constructor
+  · intro hv
+    rw[hv]
+    simp
+  · exact eq_zero_of_toReal_eq_zero
+
+lemma toReal_ne_zero_of_ne_zero {α : Type*} {v : α → ℤ} (hv : v ≠ 0) : toReal ∘ v ≠ 0 :=
+  eq_zero_iff_toReal_eq_zero.not.mp hv
+
 @[simp]
 lemma euclideanNorm_def {v : d → ℝ} :
     euclideanNorm v = @Norm.norm (EuclideanSpace ℝ d) _ v :=
@@ -109,7 +125,7 @@ lemma supNorm_le_euclideanNorm {v : d → ℝ} : ‖v‖ ≤ euclideanNorm v := 
       norm_cast
       simp
 
-lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} : euclideanNorm v ≤ Fintype.card d * ‖v‖ := by
+lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} : euclideanNorm v ≤ Real.sqrt (Fintype.card d) * ‖v‖ := by
   calc
     euclideanNorm v = Real.sqrt (∑ i, (‖v i‖) ^ 2) := by
       rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
@@ -121,11 +137,10 @@ lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} : euclideanNorm v ≤ 
       exact Finset.le_sup (α := NNReal) (f := fun b ↦ ‖v b‖₊) (Finset.mem_univ i)
     _ = Real.sqrt (Fintype.card d * ‖v‖ ^ 2) := by
       congr
-      rw[Fintype.card_eq_sum_ones]
-      sorry /-continue-/
+      rw[Finset.sum_const]
+      simp
     _ = Real.sqrt (Fintype.card d) * ‖v‖ := by
       rw[sqrt_mul (Nat.cast_nonneg _), sqrt_sq (norm_nonneg _)]
-  sorry
 
 /-- d-dimensional analogue of the absolute convergence of p-series
   (∞-norm version) -/
@@ -135,7 +150,7 @@ lemma summable_norm_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
   sorry
 
 /-- d-dimensional analogue of the absolute convergence of p-series
-  (Euclidean norm version) -/
+  (Euclidean norm version). Proved from the preceding. -/
 lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
     Summable (fun (v : d → ℤ) ↦ (euclideanNorm (toReal ∘ v)) ^ (-p)) ↔
     p > Fintype.card d := by
@@ -152,8 +167,49 @@ lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
         simp
         exact (fun v ↦ supNorm_le_euclideanNorm)
      else
-      sorry /- Resume here -/
-  · sorry
+      simp only [rpow_neg_eq_inv_rpow]
+      apply IsBigO.rpow
+      · linarith
+      · apply Filter.univ_mem'
+        simp
+      · refine IsBigOWith.isBigO (c := Real.sqrt (Fintype.card d)) ?_
+        rw[IsBigOWith_def]
+        apply Eventually.mono (Filter.eventually_cofinite_ne 0)
+        simp
+        intro v hv
+        rw[le_mul_inv_iff₀ ?_, inv_mul_le_iff₀ ?_, mul_comm]
+        · exact euclideanNorm_le_sqrt_d_mul_supNorm
+        · rw[norm_pos_iff]
+          exact toReal_ne_zero_of_ne_zero hv
+        · rw[norm_pos_iff]
+          exact toReal_ne_zero_of_ne_zero hv
+  · intro hd
+    refine summable_of_isBigO hd ?_
+    if hp : p < 0 then
+      apply IsBigO.rpow
+      · linarith
+      · apply Filter.univ_mem'
+        simp
+      · refine IsBigOWith.isBigO (c := Real.sqrt (Fintype.card d)) ?_
+        rw[IsBigOWith_def]
+        apply Filter.univ_mem'
+        simp
+        exact (fun v ↦ euclideanNorm_le_sqrt_d_mul_supNorm)
+     else
+      simp only [rpow_neg_eq_inv_rpow]
+      apply IsBigO.rpow
+      · linarith
+      · apply Filter.univ_mem'
+        simp
+      · refine IsBigOWith.isBigO (c := 1) ?_
+        rw[IsBigOWith_def]
+        apply Eventually.mono (Filter.eventually_cofinite_ne 0)
+        simp
+        intro v hv
+        apply inv_anti₀
+        · rw[norm_pos_iff]
+          exact toReal_ne_zero_of_ne_zero hv
+        · exact supNorm_le_euclideanNorm
 
 lemma summable_abs_int_rpow {p : ℝ} (hp : Fintype.card d < p) :
     Summable (fun (v : d → ℤ) ↦ euclideanNorm (toReal ∘ v) ^ (-p)) := by

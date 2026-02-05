@@ -150,7 +150,11 @@ lemma summable_norm_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
   sorry
 
 /-- d-dimensional analogue of the absolute convergence of p-series
-  (Euclidean norm version). Proved from the preceding. -/
+  (Euclidean norm version). Proved from the preceding.
+
+  Note: proof is long and repetitive. In future, it would be good to create
+  some lemmas on summability, powers, and Theta and submit to Mathlib.
+  -/
 lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
     Summable (fun (v : d → ℤ) ↦ (euclideanNorm (toReal ∘ v)) ^ (-p)) ↔
     p > Fintype.card d := by

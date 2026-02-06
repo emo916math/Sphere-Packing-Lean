@@ -16,7 +16,7 @@ open Set Algebra Submodule MeasureTheory UnitAddTorus FourierTransform Asymptoti
 
 open Asymptotics TopologicalSpace Real Filter ContinuousMap ZLattice Submodule
 
-variable {d : Type*} [Fintype d] {f : EuclideanSpace ℝ d → ℂ}
+variable {d : Type*} [Fintype d] [DecidableEq d] {f : EuclideanSpace ℝ d → ℂ}
 
 #synth InnerProductSpace ℝ (EuclideanSpace ℝ d)
 
@@ -106,6 +106,47 @@ lemma euclideanNorm_def {v : d → ℝ} :
     euclideanNorm v = @Norm.norm (EuclideanSpace ℝ d) _ v :=
   rfl
 
+lemma card_integers_norm_le {n : ℕ} :
+    let S := {a : ℤ | ‖a‖ ≤ n}; Finite S ∧ Nat.card S = 2*n + 1 := by
+  intro S
+  have : S = Finset.Icc (-(n : ℤ)) (n : ℤ) := by
+    ext x
+    unfold S
+    rw[mem_setOf_eq, Finset.coe_Icc, mem_Icc, Int.norm_eq_abs, abs_le]
+    rify
+  rw[this]; clear this
+  constructor
+  · exact Finite.of_fintype (Finset.Icc (-(n : ℤ)) n)
+  · zify
+    rw[Nat.card_eq_fintype_card, Fintype.card_ofFinset, Int.card_Icc_of_le _, sub_neg_eq_add]
+    · ring
+    · linarith
+
+lemma card_vectors_norm_le (n : ℕ) :
+    let S := {v : d → ℤ | ‖v‖ ≤ n}; Finite S ∧ Nat.card S = (2*n + 1) ^ (Fintype.card d) := by
+  intro S
+  have : S = {v : d → ℤ | ∀ i, v i ∈ {a | ‖a‖ ≤ n}} := by
+    unfold S
+    ext v
+    simp only [mem_setOf_eq]
+    exact pi_norm_le_iff_of_nonneg (Nat.cast_nonneg' n)
+  have fintypeN : Fintype {a | ‖a‖ ≤ n} := Finite.fintype card_integers_norm_le.1
+  have fintypeS : Fintype S := by
+    rw[this]
+    exact (Set.Finite.pi' fun i ↦ card_integers_norm_le.1).fintype
+  constructor
+  · exact fintypeS.finite
+  · rw[← card_integers_norm_le.2]
+    repeat rw[← Nat.card_eq_fintype_card]
+    rw[this, ← Nat.card_fun (α := d) (β := {a | ‖a‖ ≤ n})]
+    sorry /- Type difficulties -/
+
+
+lemma card_vectors_norm_eq (n : ℕ) :
+    let S := {v : d → ℤ | ‖v‖ = n}; Finite S ∧ Nat.card S =
+    (2*n + 1) ^ (Fintype.card d) - (2*n - 1) ^ (Fintype.card d) := by
+  sorry
+
 lemma supNorm_le_euclideanNorm {v : d → ℝ} : ‖v‖ ≤ euclideanNorm v := by
   calc
     ‖v‖ = Finset.univ.sup fun i ↦ ‖v i‖₊ := by rw[Pi.norm_def]
@@ -125,7 +166,8 @@ lemma supNorm_le_euclideanNorm {v : d → ℝ} : ‖v‖ ≤ euclideanNorm v := 
       norm_cast
       simp
 
-lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} : euclideanNorm v ≤ Real.sqrt (Fintype.card d) * ‖v‖ := by
+lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} :
+    euclideanNorm v ≤ Real.sqrt (Fintype.card d) * ‖v‖ := by
   calc
     euclideanNorm v = Real.sqrt (∑ i, (‖v i‖) ^ 2) := by
       rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
@@ -144,9 +186,10 @@ lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} : euclideanNorm v ≤ 
 
 /-- d-dimensional analogue of the absolute convergence of p-series
   (∞-norm version) -/
-lemma summable_norm_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
+lemma summable_norm_rpow_iff {p : ℝ} [Nonempty d] :
     Summable (fun (v : d → ℤ) ↦ ‖toReal ∘ v‖ ^ (-p)) ↔
     p > Fintype.card d := by
+
   sorry
 
 /-- d-dimensional analogue of the absolute convergence of p-series
@@ -155,10 +198,10 @@ lemma summable_norm_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
   Note: proof is long and repetitive. In future, it would be good to create
   some lemmas on summability, powers, and Theta and submit to Mathlib.
   -/
-lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
+lemma summable_abs_int_rpow_iff {p : ℝ} [Nonempty d] :
     Summable (fun (v : d → ℤ) ↦ (euclideanNorm (toReal ∘ v)) ^ (-p)) ↔
     p > Fintype.card d := by
-  rw[← summable_norm_rpow_iff hd]
+  rw[← summable_norm_rpow_iff]
   constructor
   · intro hd
     refine summable_of_isBigO hd ?_

@@ -8,10 +8,11 @@ Mathlib, which should not be the case, then we can PR it.
 -/
 
 import Mathlib.Analysis.Asymptotics.Defs
+import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 open Asymptotics Filter
 
-variable {α E : Type*}
+variable {α E E' F' : Type*}
 variable [LinearOrder α] -- [Nonempty α]
 variable [NormedDivisionRing E]
 

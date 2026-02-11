@@ -8,6 +8,9 @@ Reference: Loukas Grafakos, *Classical Fourier Analysis*
 
 import Mathlib
 
+import SpherePacking.ForMathlib.Asymptotics
+import SpherePacking.ForMathlib.PoissonSummation.New.ThetaNew
+
 /-!
 # Summability of mFourier coefficients of Schwartz Functions on ℝⁿ
 -/
@@ -27,6 +30,9 @@ InnerProductSpace. We need this instance for Real.fourierIntegral 𝓕.
 namespace RpowDecay
 
 #check Function.Periodic.lift
+
+#check IsTheta.rpow
+#check IsTheta.rpow'
 
 def Periodicization (f : EuclideanSpace ℝ d → ℂ) : UnitAddTorus d → ℂ :=
   -- fun x ↦ Quotient.liftOn' x f
@@ -166,23 +172,51 @@ lemma supNorm_le_euclideanNorm {v : d → ℝ} : ‖v‖ ≤ euclideanNorm v := 
       norm_cast
       simp
 
+lemma supNorm_isBigOWith_euclideanNorm :
+    IsBigOWith 1 ⊤ (fun v ↦ ‖v‖) (euclideanNorm : (d → ℝ) → ℝ) := by
+  rw[IsBigOWith_def]
+  apply Filter.univ_mem'
+  intro v
+  simp only [_root_.norm_norm, euclideanNorm_def, one_mul, mem_setOf_eq]
+  exact supNorm_le_euclideanNorm
+
+lemma supNorm_isBigO_euclideanNorm :
+    IsBigO ⊤ (fun v ↦ ‖v‖) (euclideanNorm : (d → ℝ) → ℝ) :=
+  IsBigOWith.isBigO supNorm_isBigOWith_euclideanNorm
+
 lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} :
-    euclideanNorm v ≤ Real.sqrt (Fintype.card d) * ‖v‖ := by
+    euclideanNorm v ≤ √(Fintype.card d) * ‖v‖ := by
   calc
-    euclideanNorm v = Real.sqrt (∑ i, (‖v i‖) ^ 2) := by
+    euclideanNorm v = √(∑ i, (‖v i‖) ^ 2) := by
       rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
-    _ ≤ Real.sqrt (∑ i, (‖v‖) ^ 2) := by
+    _ ≤ √(∑ i, (‖v‖) ^ 2) := by
       apply sqrt_le_sqrt
       apply Finset.sum_le_sum
       intro i _
       rw[sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)]
       exact Finset.le_sup (α := NNReal) (f := fun b ↦ ‖v b‖₊) (Finset.mem_univ i)
-    _ = Real.sqrt (Fintype.card d * ‖v‖ ^ 2) := by
+    _ = √(Fintype.card d * ‖v‖ ^ 2) := by
       congr
       rw[Finset.sum_const]
       simp
-    _ = Real.sqrt (Fintype.card d) * ‖v‖ := by
+    _ = √(Fintype.card d) * ‖v‖ := by
       rw[sqrt_mul (Nat.cast_nonneg _), sqrt_sq (norm_nonneg _)]
+
+lemma euclideanNorm_isBigOWith_supNorm :
+    IsBigOWith (√(Fintype.card d)) ⊤ (euclideanNorm : (d → ℝ) → ℝ) (fun v ↦ ‖v‖) := by
+  rw[IsBigOWith_def]
+  apply Filter.univ_mem'
+  intro v
+  simp only [_root_.norm_norm, euclideanNorm_def, mem_setOf_eq]
+  exact euclideanNorm_le_sqrt_d_mul_supNorm
+
+lemma euclideanNorm_isBigO_supNorm :
+    IsBigO ⊤ (euclideanNorm : (d → ℝ) → ℝ) (fun v ↦ ‖v‖) :=
+  IsBigOWith.isBigO euclideanNorm_isBigOWith_supNorm
+
+lemma euclideanNorm_isTheta_supNorm :
+    (fun v ↦ ‖v‖) =Θ[⊤] (euclideanNorm : (d → ℝ) → ℝ) :=
+  ⟨supNorm_isBigO_euclideanNorm, euclideanNorm_isBigO_supNorm⟩
 
 /-- d-dimensional analogue of the absolute convergence of p-series
   (∞-norm version) -/
@@ -204,7 +238,12 @@ lemma summable_abs_int_rpow_iff {p : ℝ} [Nonempty d] :
   rw[← summable_norm_rpow_iff]
   constructor
   · intro hd
-    refine summable_of_isBigO hd ?_
+    refine summable_of_isBigO hd (IsTheta.isBigO ?_)
+    apply IsTheta.mono (l := ⊤)
+    swap
+    exact OrderTop.le_top cofinite
+    apply IsTheta.rpow'
+    exact euclideanNorm_isTheta_supNorm /- Resume -/
     if hp : p < 0 then
       apply IsBigO.rpow
       · linarith
@@ -219,7 +258,7 @@ lemma summable_abs_int_rpow_iff {p : ℝ} [Nonempty d] :
       · linarith
       · apply Filter.univ_mem'
         simp
-      · refine IsBigOWith.isBigO (c := Real.sqrt (Fintype.card d)) ?_
+      · refine IsBigOWith.isBigO (c := √(Fintype.card d)) ?_
         rw[IsBigOWith_def]
         apply Eventually.mono (Filter.eventually_cofinite_ne 0)
         simp
@@ -237,7 +276,7 @@ lemma summable_abs_int_rpow_iff {p : ℝ} [Nonempty d] :
       · linarith
       · apply Filter.univ_mem'
         simp
-      · refine IsBigOWith.isBigO (c := Real.sqrt (Fintype.card d)) ?_
+      · refine IsBigOWith.isBigO (c := √(Fintype.card d)) ?_
         rw[IsBigOWith_def]
         apply Filter.univ_mem'
         simp
